@@ -1,0 +1,75 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// 例: ユーザーモデル
+model User {
+  id              String   @id @default(uuid()) @db.Uuid
+  email           String   @unique
+  username        String   @unique @db.VarChar(50)
+  displayName     String   @map("display_name") @db.VarChar(50)
+  bio             String?  @db.Text
+  profileImageUrl String?  @map("profile_image_url") @db.VarChar(255)
+  coverImageUrl   String?  @map("cover_image_url") @db.VarChar(255)
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  // リレーション
+  posts          Post[]    @relation("UserPosts")
+  likes          Like[]    @relation("UserLikes")
+  followers      Follow[]  @relation("UserFollowers")
+  following      Follow[]  @relation("UserFollowing")
+
+  @@map("users")
+}
+
+model Post {
+  id        String   @id @default(uuid()) @db.Uuid
+  content   String   @db.Text
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  
+  // リレーション
+  userId    String   @map("user_id") @db.Uuid
+  user      User     @relation("UserPosts", fields: [userId], references: [id], onDelete: Cascade)
+  parentId  String?  @map("parent_id") @db.Uuid
+  parent    Post?    @relation("PostReplies", fields: [parentId], references: [id], onDelete: Cascade)
+  replies   Post[]   @relation("PostReplies")
+  likes     Like[]   @relation("PostLikes")
+
+  @@index([userId])
+  @@index([parentId])
+  @@index([createdAt])
+  @@map("posts")
+}
+
+model Follow {
+  followerId  String   @map("follower_id") @db.Uuid
+  followingId String   @map("following_id") @db.Uuid
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  // リレーション
+  follower    User     @relation("UserFollowers", fields: [followerId], references: [id], onDelete: Cascade)
+  following   User     @relation("UserFollowing", fields: [followingId], references: [id], onDelete: Cascade)
+
+  @@id([followerId, followingId])
+  @@map("follows")
+}
+
+model Like {
+  userId    String   @map("user_id") @db.Uuid
+  postId    String   @map("post_id") @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at")
+
+  // リレーション
+  user      User     @relation("UserLikes", fields: [userId], references: [id], onDelete: Cascade)
+  post      Post     @relation("PostLikes", fields: [postId], references: [id], onDelete: Cascade)
+
+  @@id([userId, postId])
+  @@map("likes")
+} 
