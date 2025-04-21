@@ -6,17 +6,53 @@ import { RightSidebar } from "@/components/sidebar/right-sidebar";
 import { MobileNav } from "@/components/layout/mobile-nav";
 import { postDAL } from "@/lib/dal/post";
 import { PostHeader } from "@/components/post/post-header";
-import { NewPostInput } from "@/components/post/new-post-input";
-import { PostWithUser } from "@/types/post";
+import { ReplyForm } from "@/components/post/reply-form";
+import { Post, User } from "@prisma/client";
 
 interface PostPageProps {
-  params: {
+  params: Promise<{
     id: string;
+  }>;
+}
+
+interface PostWithUser extends Post {
+  user: User;
+  _count: {
+    replies: number;
+    likes: number;
+  };
+  likes: {
+    userId: string;
+    postId: string;
+    createdAt: Date;
+  }[];
+  replies?: PostWithUser[];
+}
+
+function convertPrismaPostToPost(prismaPost: PostWithUser) {
+  return {
+    id: prismaPost.id,
+    content: prismaPost.content,
+    user: prismaPost.user,
+    timestamp: formatTimeAgo(prismaPost.createdAt),
+    stats: {
+      replies: prismaPost._count?.replies ?? 0,
+      reposts: 0,
+      likes: (prismaPost._count?.likes ?? 0).toString(),
+      views: "0",
+    },
+    createdAt: prismaPost.createdAt,
+    updatedAt: prismaPost.updatedAt,
+    userId: prismaPost.userId,
+    parentId: prismaPost.parentId,
+    _count: prismaPost._count,
+    likes: prismaPost.likes,
   };
 }
 
 export async function generateMetadata({ params }: PostPageProps) {
-  const post = await postDAL.getPostWithReplies(params.id);
+  const { id } = await params;
+  const post = await postDAL.getPostWithReplies(id);
 
   if (!post) {
     return {
@@ -34,11 +70,15 @@ export async function generateMetadata({ params }: PostPageProps) {
 }
 
 export default async function PostPage({ params }: PostPageProps) {
-  const post = await postDAL.getPostWithReplies(params.id);
+  const { id } = await params;
+  const prismaPost = await postDAL.getPostWithReplies(id);
 
-  if (!post) {
+  if (!prismaPost) {
     notFound();
   }
+
+  const post = convertPrismaPostToPost(prismaPost);
+  const replies = prismaPost.replies?.map(convertPrismaPostToPost) ?? [];
 
   return (
     <div className="min-h-screen bg-background text-foreground overflow-x-hidden">
@@ -49,48 +89,13 @@ export default async function PostPage({ params }: PostPageProps) {
           </div>
           <main className="border-x border-border relative">
             <PostHeader post={post} isReplyPage />
-            <PostCard
-              post={{
-                id: post.id,
-                content: post.content,
-                user: post.user,
-                timestamp: formatTimeAgo(post.createdAt),
-                stats: {
-                  replies: post._count?.replies ?? 0,
-                  reposts: 0,
-                  likes: (post._count?.likes ?? 0).toString(),
-                  views: "0",
-                },
-                createdAt: post.createdAt,
-                updatedAt: post.updatedAt,
-                userId: post.userId,
-                parentId: post.parentId,
-              }}
-            />
-            <div className="border-y border-border py-3 px-4">
-              <NewPostInput replyTo={post} />
+            <PostCard post={post} />
+            <div className="border-y border-border">
+              <ReplyForm postId={post.id} />
             </div>
-            <div className="divide-y divide-border">
-              {post.replies?.map((reply: PostWithUser) => (
-                <PostCard
-                  key={reply.id}
-                  post={{
-                    id: reply.id,
-                    content: reply.content,
-                    user: reply.user,
-                    timestamp: formatTimeAgo(reply.createdAt),
-                    stats: {
-                      replies: reply._count?.replies ?? 0,
-                      reposts: 0,
-                      likes: (reply._count?.likes ?? 0).toString(),
-                      views: "0",
-                    },
-                    createdAt: reply.createdAt,
-                    updatedAt: reply.updatedAt,
-                    userId: reply.userId,
-                    parentId: reply.parentId,
-                  }}
-                />
+            <div>
+              {replies.map((reply) => (
+                <PostCard key={reply.id} post={reply} />
               ))}
             </div>
           </main>

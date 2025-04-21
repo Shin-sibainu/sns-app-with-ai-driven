@@ -5,10 +5,29 @@ import { NewPostInput } from "@/components/post/new-post-input";
 import { PostCard } from "@/components/post/post-card";
 import { formatTimeAgo } from "@/lib/utils/format-time";
 import { MobileNav } from "@/components/layout/mobile-nav";
-import { userDAL } from "@/lib/dal/user";
+import { postDAL } from "@/lib/dal/post";
 
 export default async function Home() {
-  const posts = await userDAL.getTimelinePosts();
+  const prismaData = await postDAL.getTimelinePosts();
+
+  const posts = prismaData.map((post) => ({
+    id: post.id,
+    content: post.content,
+    user: post.user,
+    timestamp: formatTimeAgo(post.createdAt),
+    stats: {
+      replies: post._count?.replies ?? 0,
+      reposts: 0,
+      likes: (post._count?.likes ?? 0).toString(),
+      views: "0",
+    },
+    createdAt: post.createdAt,
+    updatedAt: post.updatedAt,
+    userId: post.userId,
+    parentId: post.parentId,
+    _count: post._count,
+    likes: post.likes,
+  }));
 
   return (
     <div className="min-h-screen bg-background text-foreground overflow-x-hidden">
@@ -23,25 +42,7 @@ export default async function Home() {
               <NewPostInput />
               <div className="divide-y divide-border">
                 {posts.map((post) => (
-                  <PostCard
-                    key={post.id}
-                    post={{
-                      id: post.id,
-                      content: post.content,
-                      user: post.user,
-                      timestamp: formatTimeAgo(post.createdAt),
-                      stats: {
-                        replies: post._count?.replies ?? 0,
-                        reposts: 0,
-                        likes: (post._count?.likes ?? 0).toString(),
-                        views: "0",
-                      },
-                      createdAt: post.createdAt,
-                      updatedAt: post.updatedAt,
-                      userId: post.userId,
-                      parentId: post.parentId,
-                    }}
-                  />
+                  <PostCard key={post.id} post={post} />
                 ))}
               </div>
             </div>

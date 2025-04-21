@@ -23,6 +23,7 @@ import {
   HelpCircle,
 } from "lucide-react";
 import { usePathname } from "next/navigation";
+import Image from "next/image";
 
 export function MobileNav() {
   const [open, setOpen] = useState(false);
@@ -33,9 +34,11 @@ export function MobileNav() {
       <SheetTrigger asChild>
         <button className="md:hidden">
           <Avatar className="w-8 h-8">
-            <img
+            <Image
               src="https://images.unsplash.com/photo-1568602471122-7832951cc4c5?q=80&w=400&auto=format&fit=crop"
               alt="プロフィール"
+              width={32}
+              height={32}
               className="rounded-full"
             />
           </Avatar>
@@ -48,9 +51,11 @@ export function MobileNav() {
         <div className="p-4 space-y-4">
           <div className="flex flex-col gap-1">
             <Avatar className="w-10 h-10">
-              <img
+              <Image
                 src="https://images.unsplash.com/photo-1568602471122-7832951cc4c5?q=80&w=400&auto=format&fit=crop"
                 alt="プロフィール"
+                width={32}
+                height={32}
                 className="rounded-full"
               />
             </Avatar>

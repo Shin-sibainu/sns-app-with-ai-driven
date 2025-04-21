@@ -2,14 +2,19 @@ import { Card } from "@/components/ui/card";
 
 const trends = [
   {
-    category: "テクノロジー・トレンド",
-    title: "OpenAI",
-    posts: "54,433",
+    category: "プログラミング学習",
+    title: "ShinCode",
+    posts: "12,543",
   },
   {
-    category: "日本のトレンド",
-    title: "岸田前総理辞任事件",
-    posts: "12,345",
+    category: "テック系YouTuber",
+    title: "プログラミングチュートリアル",
+    posts: "5,876",
+  },
+  {
+    category: "Web開発",
+    title: "Next.js 14",
+    posts: "8,765",
   },
 ];
 

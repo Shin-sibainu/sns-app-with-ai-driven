@@ -1,32 +1,37 @@
 import { prisma } from "@/lib/prisma";
-import { PostWithUser } from "@/types/post";
+import { Post, User } from "@prisma/client";
+
+interface PostWithUser extends Post {
+  user: User;
+  _count: {
+    replies: number;
+    likes: number;
+  };
+  likes: {
+    userId: string;
+    postId: string;
+    createdAt: Date;
+  }[];
+  replies?: PostWithUser[];
+}
 
 export const postDAL = {
-  async create(userId: string, content: string): Promise<PostWithUser> {
+  async create(data: { content: string; userId: string; parentId?: string }) {
     return await prisma.post.create({
-      data: {
-        content,
-        userId,
-      },
+      data,
       include: {
         user: true,
-        likes: true,
-        replies: {
-          include: {
-            user: true,
-            likes: true,
-            _count: {
-              select: {
-                likes: true,
-                replies: true,
-              },
-            },
-          },
-        },
         _count: {
           select: {
-            likes: true,
             replies: true,
+            likes: true,
+          },
+        },
+        likes: {
+          select: {
+            userId: true,
+            postId: true,
+            createdAt: true,
           },
         },
       },
@@ -38,11 +43,23 @@ export const postDAL = {
       where: { id },
       include: {
         user: true,
-        likes: true,
+        likes: {
+          select: {
+            userId: true,
+            postId: true,
+            createdAt: true,
+          },
+        },
         replies: {
           include: {
             user: true,
-            likes: true,
+            likes: {
+              select: {
+                userId: true,
+                postId: true,
+                createdAt: true,
+              },
+            },
             _count: {
               select: {
                 likes: true,
@@ -61,20 +78,25 @@ export const postDAL = {
     });
   },
 
-  async getPostWithReplies(id: string): Promise<PostWithUser | null> {
+  async getPostWithReplies(postId: string): Promise<PostWithUser | null> {
     return await prisma.post.findUnique({
-      where: { id },
+      where: { id: postId },
       include: {
         user: true,
-        likes: true,
         replies: {
           include: {
             user: true,
-            likes: true,
             _count: {
               select: {
-                likes: true,
                 replies: true,
+                likes: true,
+              },
+            },
+            likes: {
+              select: {
+                userId: true,
+                postId: true,
+                createdAt: true,
               },
             },
           },
@@ -84,8 +106,62 @@ export const postDAL = {
         },
         _count: {
           select: {
-            likes: true,
             replies: true,
+            likes: true,
+          },
+        },
+        likes: {
+          select: {
+            userId: true,
+            postId: true,
+            createdAt: true,
+          },
+        },
+      },
+    });
+  },
+
+  async getLikeStatus(postId: string, userId: string): Promise<boolean> {
+    const like = await prisma.like.findUnique({
+      where: {
+        userId_postId: {
+          userId,
+          postId,
+        },
+      },
+    });
+    return !!like;
+  },
+
+  async getUserByClerkId(clerkId: string) {
+    return await prisma.user.findUnique({
+      where: { clerkId },
+      select: { id: true },
+    });
+  },
+
+  async getTimelinePosts(): Promise<PostWithUser[]> {
+    return await prisma.post.findMany({
+      where: {
+        parentId: null, // 親投稿のみを取得（リプライを除外）
+      },
+      take: 20,
+      orderBy: {
+        createdAt: "desc",
+      },
+      include: {
+        user: true,
+        _count: {
+          select: {
+            replies: true,
+            likes: true,
+          },
+        },
+        likes: {
+          select: {
+            userId: true,
+            postId: true,
+            createdAt: true,
           },
         },
       },
