@@ -12,9 +12,11 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { UserButton, useUser } from "@clerk/nextjs";
 
 export function LeftSidebar() {
   const pathname = usePathname();
+  const { user } = useUser();
 
   return (
     <div className="sticky top-0 h-screen p-4 min-w-[275px] flex flex-col">
@@ -66,10 +68,22 @@ export function LeftSidebar() {
           isActive={pathname === "/communities"}
         />
         <NavButton
-          href="/profile"
+          href={`/${user?.username || ""}`}
           icon={<User className="h-[26px] w-[26px]" />}
           label="プロフィール"
-          isActive={pathname === "/profile"}
+          isActive={pathname.startsWith("/profile")}
+        />
+      </div>
+      <div className="mt-auto p-4">
+        <UserButton
+          appearance={{
+            elements: {
+              avatarBox: "w-12 h-12",
+              userPreviewMainIdentifier: "text-base font-bold",
+              userPreviewSecondaryIdentifier: "text-sm text-neutral-600",
+            },
+          }}
+          afterSignOutUrl="/"
         />
       </div>
     </div>

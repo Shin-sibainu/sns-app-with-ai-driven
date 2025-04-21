@@ -2,10 +2,15 @@ import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Avatar } from "@/components/ui/avatar";
+import { auth } from "@clerk/nextjs/server";
+import { userDAL } from "@/lib/dal/user";
+import { FollowButton } from "./follow-button";
+import Image from "next/image";
 
 interface ProfileHeaderProps {
   user: {
     id: string;
+    clerkId: string;
     username: string;
     displayName: string;
     bio: string | null;
@@ -19,7 +24,16 @@ interface ProfileHeaderProps {
   };
 }
 
-export function ProfileHeader({ user }: ProfileHeaderProps) {
+export async function ProfileHeader({ user }: ProfileHeaderProps) {
+  const { userId: clerkId } = await auth();
+  const isOwnProfile = clerkId === user.clerkId;
+
+  const currentUser = clerkId ? await userDAL.getByClerkId(clerkId) : null;
+
+  const isFollowing = currentUser
+    ? await userDAL.isFollowing(currentUser.id, user.id)
+    : false;
+
   return (
     <div>
       <div className="flex items-center px-4 h-14 border-b border-border">
@@ -34,28 +48,48 @@ export function ProfileHeader({ user }: ProfileHeaderProps) {
         </div>
       </div>
       <div className="h-48 bg-muted relative">
-        {user.coverImageUrl && (
-          <img
+        {user.coverImageUrl ? (
+          <Image
             src={user.coverImageUrl}
-            alt="Cover"
-            className="w-full h-full object-cover"
+            alt={`${user.displayName}のカバー画像`}
+            fill
+            className="object-cover"
+            sizes="(max-width: 768px) 100vw, 768px"
+            priority
           />
+        ) : (
+          <div className="w-full h-full bg-muted" />
         )}
       </div>
       <div className="px-4 py-3 relative">
         <div className="absolute -top-16 left-4">
           <Avatar className="w-32 h-32 border-4 border-background">
-            <img
+            <Image
               src={user.profileImageUrl || "/default-avatar.png"}
               alt={user.displayName}
+              width={128}
+              height={128}
               className="rounded-full"
+              priority
             />
           </Avatar>
         </div>
-        <div className="flex justify-end mb-16">
-          <Button variant="outline" className="rounded-full">
-            プロフィールを編集
-          </Button>
+        <div className="flex justify-end mb-16 gap-2">
+          {!isOwnProfile && clerkId && currentUser && (
+            <FollowButton
+              userId={currentUser.id}
+              targetUserId={user.id}
+              username={user.username}
+              isFollowing={isFollowing}
+            />
+          )}
+          {isOwnProfile && (
+            <Link href={`/${user.username}/edit`} className="rounded-full">
+              <Button variant="outline" className="rounded-full">
+                プロフィールを編集
+              </Button>
+            </Link>
+          )}
         </div>
         <div className="space-y-1">
           <h1 className="text-xl font-bold">{user.displayName}</h1>

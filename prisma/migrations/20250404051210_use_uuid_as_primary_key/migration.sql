@@ -1,6 +1,7 @@
 -- CreateTable
 CREATE TABLE "users" (
     "id" TEXT NOT NULL,
+    "clerkId" TEXT NOT NULL,
     "email" TEXT NOT NULL,
     "username" VARCHAR(50) NOT NULL,
     "display_name" VARCHAR(50) NOT NULL,
@@ -42,6 +43,9 @@ CREATE TABLE "likes" (
 
     CONSTRAINT "likes_pkey" PRIMARY KEY ("user_id","post_id")
 );
+
+-- CreateIndex
+CREATE UNIQUE INDEX "users_clerkId_key" ON "users"("clerkId");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "users_email_key" ON "users"("email");

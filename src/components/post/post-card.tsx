@@ -1,72 +1,24 @@
-"use client";
-
-import { Avatar } from "@/components/ui/avatar";
-import { MessageCircle, Repeat2, Heart, Share } from "lucide-react";
-import { useRouter } from "next/navigation";
 import { Post } from "@/types/post";
-import { PostHeader } from "./post-header";
-import { ActionButton } from "./action-button";
+import { auth } from "@clerk/nextjs/server";
+import { postDAL } from "@/lib/dal/post";
+import { PostCardClient } from "./post-card-client";
 
 interface PostCardProps {
   post: Post;
 }
 
-export function PostCard({ post }: PostCardProps) {
-  const router = useRouter();
+export async function PostCard({ post }: PostCardProps) {
+  const { userId: clerkId } = await auth();
+  let isLiked = false;
 
-  const handlePostClick = () => {
-    router.push(`/posts/${post.id}`);
-  };
+  if (clerkId) {
+    const user = await postDAL.getUserByClerkId(clerkId);
+    if (user) {
+      isLiked = await postDAL.getLikeStatus(post.id, user.id);
+    }
+  }
 
-  return (
-    <article
-      className="p-4 hover:bg-muted/50 transition-colors cursor-pointer"
-      onClick={handlePostClick}
-    >
-      <div className="flex gap-4">
-        <Avatar className="w-10 h-10">
-          <img
-            src={post.user.profileImageUrl || "/default-avatar.png"}
-            alt={post.user.displayName}
-            className="rounded-full"
-          />
-        </Avatar>
-        <div className="flex-1 space-y-2">
-          <PostHeader post={post} />
-          <p className="whitespace-pre-line">{post.content}</p>
-          {post.image && (
-            <div className="mt-2 rounded-xl overflow-hidden border border-border">
-              <img
-                src={post.image}
-                alt="Post content"
-                className="w-full h-auto"
-              />
-            </div>
-          )}
-          <div className="flex justify-between items-center pt-2 text-muted-foreground max-w-md">
-            <ActionButton
-              icon={<MessageCircle className="h-4 w-4" />}
-              count={post.stats.replies}
-              color="blue"
-            />
-            <ActionButton
-              icon={<Repeat2 className="h-4 w-4" />}
-              count={post.stats.reposts}
-              color="green"
-            />
-            <ActionButton
-              icon={<Heart className="h-4 w-4" />}
-              count={post.stats.likes}
-              color="pink"
-            />
-            <ActionButton
-              icon={<Share className="h-4 w-4" />}
-              count={post.stats.views}
-              color="blue"
-            />
-          </div>
-        </div>
-      </div>
-    </article>
-  );
+  const likeCount = post._count?.likes || 0;
+
+  return <PostCardClient post={post} isLiked={isLiked} likeCount={likeCount} />;
 }

@@ -14,6 +14,12 @@ export interface PostStats {
   views: string;
 }
 
+export interface Like {
+  userId: string;
+  postId: string;
+  createdAt: Date;
+}
+
 export interface Post {
   id: string;
   content: string;
@@ -30,6 +36,7 @@ export interface Post {
     likes: number;
   };
   replies?: PostWithUser[];
+  likes?: Like[];
 }
 
 export interface PostWithUser extends Post {
